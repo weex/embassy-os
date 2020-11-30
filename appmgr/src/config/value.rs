@@ -41,7 +41,7 @@ fn serialize_num<S: serde::Serializer>(num: &f64, serializer: S) -> Result<S::Ok
     }
 }
 
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(untagged)]
 pub enum Value {
     String(String),
@@ -51,6 +51,20 @@ pub enum Value {
     List(Vec<Value>),
     Object(Config),
     Null,
+    Undefined,
+}
+impl PartialEq for Value {
+    fn eq(&self, rhs: &Self) -> bool {
+        match (self, rhs) {
+            (Value::String(lhs), Value::String(rhs)) => lhs == rhs,
+            (Value::Number(lhs), Value::Number(rhs)) => lhs == rhs,
+            (Value::Bool(lhs), Value::Bool(rhs)) => lhs == rhs,
+            (Value::List(lhs), Value::List(rhs)) => lhs == rhs,
+            (Value::Object(lhs), Value::Object(rhs)) => lhs == rhs,
+            (Value::Null, Value::Null) => true,
+            _ => false,
+        }
+    }
 }
 impl Value {
     pub fn type_of(&self) -> &'static str {
@@ -61,6 +75,7 @@ impl Value {
             Value::List(_) => "list",
             Value::Object(_) => "object",
             Value::Null => "null",
+            Value::Undefined => "undefined",
         }
     }
 }

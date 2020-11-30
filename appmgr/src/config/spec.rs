@@ -11,7 +11,7 @@ use linear_map::{set::LinearSet, LinearMap};
 use rand::{CryptoRng, Rng};
 use regex::Regex;
 
-use super::util::{self, CharSet, NumRange, UniqueBy, STATIC_NULL};
+use super::util::{self, CharSet, NumRange, UniqueBy, UNDEFINED};
 use super::value::{Config, Value};
 use super::{MatchError, NoMatchWithPath, TimeoutError};
 
@@ -979,7 +979,7 @@ impl ConfigSpec {
     pub fn requires(&self, id: &str, cfg: &Config) -> bool {
         self.0
             .iter()
-            .any(|(k, v)| v.requires(id, cfg.0.get(k).unwrap_or(&STATIC_NULL)))
+            .any(|(k, v)| v.requires(id, cfg.0.get(k).unwrap_or(&UNDEFINED)))
     }
 }
 

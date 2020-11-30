@@ -6,7 +6,7 @@ use pest::iterators::Pairs;
 use pest::Parser;
 use rand::SeedableRng;
 
-use super::util::STATIC_NULL;
+use super::util::UNDEFINED;
 use super::value::{Config, Value};
 
 #[derive(Parser)]
@@ -367,14 +367,14 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                 Value::Object(o) => {
                     VarRes::Any(o.0.iter().map(|(_, a)| VarRes::Exactly(a)).collect())
                 }
-                _ => VarRes::Exactly(&STATIC_NULL),
+                _ => VarRes::Exactly(&UNDEFINED),
             }),
             Rule::sub_ident_all => Box::new(|v, _| match v {
                 Value::List(l) => VarRes::All(l.iter().map(VarRes::Exactly).collect()),
                 Value::Object(o) => {
                     VarRes::All(o.0.iter().map(|(_, a)| VarRes::Exactly(a)).collect())
                 }
-                _ => VarRes::Exactly(&STATIC_NULL),
+                _ => VarRes::Exactly(&UNDEFINED),
             }),
             Rule::sub_ident_fn => {
                 let idx = idx.into_inner().next().unwrap();
@@ -392,7 +392,7 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                                         predicate(&cfg, cfgs)
                                     })
                                     .next()
-                                    .unwrap_or(&STATIC_NULL),
+                                    .unwrap_or(&UNDEFINED),
                             ),
                             Value::Object(o) => VarRes::Exactly(
                                 o.0.iter()
@@ -403,9 +403,9 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                                         predicate(&cfg, cfgs)
                                     })
                                     .next()
-                                    .unwrap_or(&STATIC_NULL),
+                                    .unwrap_or(&UNDEFINED),
                             ),
-                            _ => VarRes::Exactly(&STATIC_NULL),
+                            _ => VarRes::Exactly(&UNDEFINED),
                         })
                     }
                     Rule::list_access_function_last => {
@@ -421,7 +421,7 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                                         predicate(&cfg, cfgs)
                                     })
                                     .next_back()
-                                    .unwrap_or(&STATIC_NULL),
+                                    .unwrap_or(&UNDEFINED),
                             ),
                             Value::Object(o) => VarRes::Exactly(
                                 o.0.iter()
@@ -432,9 +432,9 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                                         predicate(&cfg, cfgs)
                                     })
                                     .next_back()
-                                    .unwrap_or(&STATIC_NULL),
+                                    .unwrap_or(&UNDEFINED),
                             ),
-                            _ => VarRes::Exactly(&STATIC_NULL),
+                            _ => VarRes::Exactly(&UNDEFINED),
                         })
                     }
                     Rule::list_access_function_any => {
@@ -463,7 +463,7 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                                     .map(VarRes::Exactly)
                                     .collect(),
                             ),
-                            _ => VarRes::Exactly(&STATIC_NULL),
+                            _ => VarRes::Exactly(&UNDEFINED),
                         })
                     }
                     Rule::list_access_function_all => {
@@ -492,7 +492,7 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                                     .map(VarRes::Exactly)
                                     .collect(),
                             ),
-                            _ => VarRes::Exactly(&STATIC_NULL),
+                            _ => VarRes::Exactly(&UNDEFINED),
                         })
                     }
                     _ => unreachable!(),
@@ -505,18 +505,17 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                         let idx = idx.as_str().to_owned();
                         Box::new(move |v, _| match v {
                             Value::Object(o) => {
-                                VarRes::Exactly(o.0.get(&idx).unwrap_or(&STATIC_NULL))
+                                VarRes::Exactly(o.0.get(&idx).unwrap_or(&UNDEFINED))
                             }
-                            _ => VarRes::Exactly(&STATIC_NULL),
+                            _ => VarRes::Exactly(&UNDEFINED),
                         })
                     }
                     Rule::sub_ident_regular_expr => {
                         let idx = compile_str_expr(idx.into_inner().next().unwrap().into_inner());
                         Box::new(move |v, dep_cfg| match v {
-                            Value::Object(o) => idx(&Config::default(), dep_cfg).map(|idx| {
-                                idx.and_then(|idx| o.0.get(&idx)).unwrap_or(&STATIC_NULL)
-                            }),
-                            _ => VarRes::Exactly(&STATIC_NULL),
+                            Value::Object(o) => idx(&Config::default(), dep_cfg)
+                                .map(|idx| idx.and_then(|idx| o.0.get(&idx)).unwrap_or(&UNDEFINED)),
+                            _ => VarRes::Exactly(&UNDEFINED),
                         })
                     }
                     _ => unreachable!(),
@@ -528,16 +527,16 @@ fn compile_var_rec(mut ident: Pairs<Rule>) -> Option<Accessor> {
                     Rule::sub_ident_index_base => {
                         let idx: usize = idx.as_str().parse().unwrap();
                         Box::new(move |v, _| match v {
-                            Value::List(l) => VarRes::Exactly(l.get(idx).unwrap_or(&STATIC_NULL)),
-                            _ => VarRes::Exactly(&STATIC_NULL),
+                            Value::List(l) => VarRes::Exactly(l.get(idx).unwrap_or(&UNDEFINED)),
+                            _ => VarRes::Exactly(&UNDEFINED),
                         })
                     }
                     Rule::sub_ident_index_expr => {
                         let idx = compile_num_expr(idx.into_inner().next().unwrap().into_inner());
                         Box::new(move |v, dep_cfg| match v {
                             Value::List(l) => idx(&Config::default(), dep_cfg)
-                                .map(|idx| l.get(idx as usize).unwrap_or(&STATIC_NULL)),
-                            _ => VarRes::Exactly(&STATIC_NULL),
+                                .map(|idx| l.get(idx as usize).unwrap_or(&UNDEFINED)),
+                            _ => VarRes::Exactly(&UNDEFINED),
                         })
                     }
                     _ => unreachable!(),
@@ -572,10 +571,10 @@ fn compile_var(mut var: Pairs<Rule>) -> CompiledExpr<VarRes<Value>> {
             cfg = if let Some(cfg) = cfgs.get(&app_id.as_str()) {
                 cfg
             } else {
-                return VarRes::Exactly(Value::Null);
+                return VarRes::Exactly(Value::Undefined);
             };
         }
-        let val = cfg.0.get(&first_seg_string).unwrap_or(&STATIC_NULL);
+        let val = cfg.0.get(&first_seg_string).unwrap_or(&UNDEFINED);
         if let Some(accessor) = &accessor {
             accessor(val, cfgs).map(|v| v.clone())
         } else {
@@ -659,7 +658,7 @@ fn compile_var_mut_rec(mut ident: Pairs<Rule>) -> Result<Option<AccessorMut>, fa
                                 if o.0.contains_key(&idx) {
                                     o.0.get_mut(&idx)
                                 } else {
-                                    o.0.insert(idx.clone(), Value::Null);
+                                    o.0.insert(idx.clone(), Value::Undefined);
                                     o.0.get_mut(&idx)
                                 }
                             }
@@ -674,7 +673,7 @@ fn compile_var_mut_rec(mut ident: Pairs<Rule>) -> Result<Option<AccessorMut>, fa
                                     if o.0.contains_key(idx) {
                                         o.0.get_mut(idx)
                                     } else {
-                                        o.0.insert(idx.clone(), Value::Null);
+                                        o.0.insert(idx.clone(), Value::Undefined);
                                         o.0.get_mut(idx)
                                     }
                                 }
@@ -695,7 +694,7 @@ fn compile_var_mut_rec(mut ident: Pairs<Rule>) -> Result<Option<AccessorMut>, fa
                                 if l.len() > idx {
                                     l.get_mut(idx)
                                 } else if idx == l.len() {
-                                    l.push(Value::Null);
+                                    l.push(Value::Undefined);
                                     l.get_mut(idx)
                                 } else {
                                     None
@@ -713,7 +712,7 @@ fn compile_var_mut_rec(mut ident: Pairs<Rule>) -> Result<Option<AccessorMut>, fa
                                     if l.len() > idx {
                                         l.get_mut(idx)
                                     } else if idx == l.len() {
-                                        l.push(Value::Null);
+                                        l.push(Value::Undefined);
                                         l.get_mut(idx)
                                     } else {
                                         None
@@ -749,7 +748,7 @@ fn compile_var_mut(mut var: Pairs<Rule>) -> Result<CompiledReference, failure::E
         let var = if cfg.0.contains_key(&first_seg_string) {
             cfg.0.get_mut(&first_seg_string).unwrap()
         } else {
-            cfg.0.insert(first_seg_string.clone(), Value::Null);
+            cfg.0.insert(first_seg_string.clone(), Value::Undefined);
             cfg.0.get_mut(&first_seg_string).unwrap()
         };
         if let Some(accessor_mut) = &accessor_mut {
@@ -765,7 +764,7 @@ fn compile_bool_var(var: Pairs<Rule>) -> CompiledRule {
     Box::new(move |cfg, cfgs| {
         var(cfg, cfgs)
             .map(|a| match a {
-                Value::Bool(false) | Value::Null => false,
+                Value::Bool(false) | Value::Null | Value::Undefined => false,
                 _ => true,
             })
             .resolve()
@@ -1039,7 +1038,7 @@ fn compile_value_expr(mut pairs: Pairs<Rule>) -> CompiledExpr<VarRes<Value>> {
         Rule::str_expr => {
             let expr = compile_str_expr(expr.into_inner());
             Box::new(move |cfg, cfgs| {
-                expr(cfg, cfgs).map(|s| s.map(Value::String).unwrap_or(Value::Null))
+                expr(cfg, cfgs).map(|s| s.map(Value::String).unwrap_or(Value::Undefined))
             })
         }
         Rule::num_expr => {
@@ -1148,7 +1147,7 @@ pub fn compile_expr(expr: &str) -> Result<CompiledExpr<Value>, failure::Error> {
     let compiled = compile_value_expr(RuleParser::parse(Rule::value, expr)?);
     Ok(Box::new(move |cfg, cfgs| match compiled(cfg, cfgs) {
         VarRes::Exactly(v) => v,
-        _ => Value::Null,
+        _ => Value::Undefined,
     }))
 }
 

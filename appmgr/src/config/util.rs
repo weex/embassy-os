@@ -6,7 +6,7 @@ use rand::{distributions::Distribution, Rng};
 
 use super::value::Config;
 
-pub const STATIC_NULL: super::value::Value = super::value::Value::Null;
+pub const UNDEFINED: super::value::Value = super::value::Value::Undefined;
 
 #[derive(Clone, Debug)]
 pub struct CharSet(pub Vec<(RangeInclusive<char>, usize)>, usize);

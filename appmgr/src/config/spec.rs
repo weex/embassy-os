@@ -1842,7 +1842,7 @@ mod test {
                 config: Vec::new(),
             },
         );
-        spec.validate(&crate::manifest::ManifestV0 {
+        spec.validate(&crate::manifest::ManifestV1 {
             id: "test-app".to_owned(),
             version: "0.1.0".parse().unwrap(),
             title: "Test App".to_owned(),
@@ -1851,17 +1851,18 @@ mod test {
                 long: "A super cool test app for testing".to_owned(),
             },
             release_notes: "Some things changed".to_owned(),
-            ports: Vec::new(),
-            image: crate::manifest::ImageConfig::Tar,
-            shm_size_mb: None,
-            mount: "/root".parse().unwrap(),
-            public: None,
-            shared: None,
-            has_instructions: false,
+            instructions: false,
             os_version_required: ">=0.2.5".parse().unwrap(),
             os_version_recommended: ">=0.2.5".parse().unwrap(),
+            network_interfaces: Default::default(),
+            bundle_info: crate::manifest::BundleInfo::Docker {
+                image_format: crate::manifest::ImageConfig::Tar,
+                mount: "/root".parse().unwrap(),
+                shm_size: None,
+            },
+            public: None,
+            shared: None,
             assets: Vec::new(),
-            hidden_service_version: crate::tor::HiddenServiceVersion::V3,
             dependencies: deps,
             extra: LinearMap::new(),
         })

@@ -4,9 +4,10 @@ use emver::{Version, VersionRange};
 use linear_map::LinearMap;
 
 use crate::dependencies::Dependencies;
-use crate::tor::{HiddenServiceMode, HiddenServiceVersion, PortMapping};
+use crate::tor::{HiddenServiceConfig, HiddenServiceMode, HiddenServiceVersion, PortMapping};
+use crate::util::{ByteSize, ByteUnit};
 
-pub type ManifestLatest = ManifestV0;
+pub type ManifestLatest = ManifestV1;
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct Description {
@@ -68,20 +69,13 @@ pub enum BundleInfo {
     #[serde(rename_all = "kebab-case")]
     Docker {
         image_format: ImageConfig,
-        #[serde(default)]
-        shm_size_mb: Option<usize>,
         mount: PathBuf,
+        #[serde(default)]
+        shm_size: Option<ByteSize>,
     },
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct HiddenServiceConfig {
-    pub version: HiddenServiceVersion,
-    pub mode: HiddenServiceMode,
-    pub port_mapping: LinearMap<u16, u16>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct NetworkInterfaces(pub LinearMap<String, NetworkInterface>);
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct NetworkInterface {
@@ -98,7 +92,7 @@ pub struct ManifestV1 {
     pub title: String,
     pub description: Description,
     pub release_notes: String,
-    pub has_instructions: bool,
+    pub instructions: bool,
     #[serde(default = "VersionRange::any")]
     pub os_version_required: VersionRange,
     #[serde(default = "VersionRange::any")]
@@ -118,11 +112,50 @@ pub struct ManifestV1 {
 #[serde(rename_all = "lowercase")]
 pub enum Manifest {
     V0(ManifestV0),
+    V1(ManifestV1),
 }
 impl Manifest {
     pub fn into_latest(self) -> ManifestLatest {
         match self {
-            Manifest::V0(m) => m,
+            Manifest::V0(m) => ManifestV1 {
+                id: m.id,
+                version: m.version,
+                title: m.title,
+                description: m.description,
+                release_notes: m.release_notes,
+                instructions: m.has_instructions,
+                os_version_required: m.os_version_required,
+                os_version_recommended: m.os_version_recommended,
+                network_interfaces: NetworkInterfaces(linear_map::linear_map! {
+                    "default" => NetworkInterface {
+                        name: "Default".to_owned(),
+                        ports: m.ports.iter().map(|p| p.internal).collect(),
+                        hidden_service: if m.ports.is_empty() { None } else { Some(HiddenServiceConfig {
+                            version: m.hidden_service_version,
+                            mode: HiddenServiceMode::Anonymous,
+                            port_mapping: m.ports.iter().filter_map(|p| if p.internal == p.tor {
+                                None
+                            } else {
+                                Some((p.internal, p.tor))
+                            }).collect()
+                        })},
+                    }
+                }),
+                bundle_info: BundleInfo::Docker {
+                    image_format: m.image,
+                    mount: m.mount,
+                    shm_size: m.shm_size_mb.map(|shm_size_mb| ByteSize {
+                        size: shm_size_mb,
+                        units: ByteUnit::M,
+                    }),
+                },
+                public: m.public,
+                shared: m.shared,
+                assets: m.assets,
+                dependencies: m.dependencies,
+                extra: LinearMap::new(),
+            },
+            Manifest::V1(m) => m,
         }
     }
 }

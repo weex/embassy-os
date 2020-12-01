@@ -560,5 +560,115 @@ pub trait ApplyRef {
     }
 }
 
-impl<T> Apply for T {}
+impl<T: Sized> Apply for T {}
 impl<T> ApplyRef for T {}
+
+pub enum Either<A, B> {
+    A(A),
+    B(B),
+}
+impl<A, B> std::fmt::Debug for Either<A, B>
+where
+    A: std::fmt::Debug,
+    B: std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Either::A(a) => write!(f, "{:?}", a),
+            Either::B(b) => write!(f, "{:?}", b),
+        }
+    }
+}
+impl<A, B> std::fmt::Display for Either<A, B>
+where
+    A: std::fmt::Display,
+    B: std::fmt::Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Either::A(a) => write!(f, "{}", a),
+            Either::B(b) => write!(f, "{}", b),
+        }
+    }
+}
+impl<A, B> std::error::Error for Either<A, B>
+where
+    A: std::error::Error,
+    B: std::error::Error,
+{
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InvalidByteUnit;
+impl std::fmt::Display for InvalidByteUnit {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "Invalid Byte Unit")
+    }
+}
+impl std::error::Error for InvalidByteUnit {}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ByteUnit {
+    B,
+    K,
+    M,
+    G,
+}
+impl std::fmt::Display for ByteUnit {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ByteUnit::B => "b",
+                ByteUnit::K => "kb",
+                ByteUnit::M => "mb",
+                ByteUnit::G => "gb",
+            }
+        )
+    }
+}
+impl<'a> std::str::FromStr for ByteUnit {
+    type Err = InvalidByteUnit;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "b" | "" => Ok(ByteUnit::B),
+            "kb" | "k" => Ok(ByteUnit::K),
+            "mb" | "m" => Ok(ByteUnit::M),
+            "gb" | "g" => Ok(ByteUnit::G),
+            _ => Err(InvalidByteUnit),
+        }
+    }
+}
+#[derive(Debug, Clone, Copy)]
+pub struct ByteSize {
+    pub size: usize,
+    pub units: ByteUnit,
+}
+impl std::fmt::Display for ByteSize {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}{}", self.size, self.units)
+    }
+}
+impl std::str::FromStr for ByteSize {
+    type Err = Either<std::num::ParseIntError, InvalidByteUnit>;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let split_point = s.find(|c: char| !c.is_digit(10)).unwrap_or(s.len());
+        let (size, units) = s.split_at(split_point);
+        Ok(ByteSize {
+            size: size.parse().map_err(Either::A)?,
+            units: units.parse().map_err(Either::B)?,
+        })
+    }
+}
+impl serde::ser::Serialize for ByteSize {
+    fn serialize<S: serde::ser::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(&format!("{}", self))
+    }
+}
+impl<'de> serde::de::Deserialize<'de> for ByteSize {
+    fn deserialize<D: serde::de::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s: String = serde::de::Deserialize::deserialize(deserializer)?;
+        s.parse().map_err(serde::de::Error::custom)
+    }
+}

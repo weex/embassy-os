@@ -164,7 +164,7 @@ pub async fn print_instructions<P: AsRef<Path>>(path: P) -> Result<(), Error> {
         ))
         .no_code()??;
 
-    if manifest.has_instructions {
+    if manifest.instructions {
         use tokio::io::AsyncWriteExt;
 
         let instructions = entries

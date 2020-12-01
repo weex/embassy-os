@@ -5,6 +5,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 
 use failure::ResultExt as _;
+use linear_map::LinearMap;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 
@@ -25,6 +26,14 @@ pub struct PortMapping {
 pub enum HiddenServiceMode {
     Anonymous,
     Fast,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct HiddenServiceConfig {
+    pub version: HiddenServiceVersion,
+    pub mode: HiddenServiceMode,
+    pub port_mapping: LinearMap<u16, u16>,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]

@@ -9,7 +9,7 @@ use tokio_compat_02::IoCompat;
 use tokio_tar as tar;
 
 use crate::config::{ConfigRuleEntry, ConfigSpec};
-use crate::manifest::{ImageConfig, Manifest};
+use crate::manifest::{BundleInfo, ImageConfig, Manifest};
 use crate::util::{from_cbor_async_reader, from_json_async_reader, from_yaml_async_reader};
 use crate::version::VersionT;
 
@@ -111,7 +111,7 @@ pub async fn pack(path: &str, output: &str) -> Result<(), failure::Error> {
         std::io::Cursor::new(bin_config_rules),
     )
     .await?;
-    if manifest.has_instructions {
+    if manifest.instructions {
         log::info!("Packing instructions.md");
         out.append_path_with_name(path.join("instructions.md"), "instructions.md")
             .await?;
@@ -136,8 +136,11 @@ pub async fn pack(path: &str, output: &str) -> Result<(), failure::Error> {
             out.append_path_with_name(&file_path, &asset.src).await?;
         }
     }
-    match manifest.image {
-        ImageConfig::Tar => {
+    match manifest.bundle_info {
+        BundleInfo::Docker {
+            image_format: ImageConfig::Tar,
+            ..
+        } => {
             log::info!("Reading {}/image.tar.", path.display());
             let image = tokio::fs::File::open(path.join("image.tar"))
                 .await
@@ -272,7 +275,7 @@ pub async fn verify(path: &str) -> Result<(), failure::Error> {
         rule.check(&config, &cfgs)
             .with_context(|e| format!("Default Config does not satisfy: {}", e))?;
     }
-    if manifest.has_instructions {
+    if manifest.instructions {
         let instructions = entries
             .next()
             .await
@@ -332,8 +335,11 @@ pub async fn verify(path: &str) -> Result<(), failure::Error> {
             bail!("Asset Not Regular File: {}", asset_info.src.display());
         }
     }
-    match &manifest.image {
-        ImageConfig::Tar => {
+    match &manifest.bundle_info {
+        BundleInfo::Docker {
+            image_format: ImageConfig::Tar,
+            ..
+        } => {
             #[derive(Clone, Debug, serde::Deserialize)]
             #[serde(rename_all = "PascalCase")]
             struct DockerManifest {

@@ -11,14 +11,21 @@ use tokio::io::AsyncWriteExt;
 use crate::util::{PersistencePath, YamlUpdateHandle};
 use crate::{Error, ResultExt as _};
 
-#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+pub const ETC_TOR_RC: &'static str = "/etc/tor/torrc";
+pub const HIDDEN_SERVICE_DIR_ROOT: &'static str = "/var/lib/tor";
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct PortMapping {
     pub internal: u16,
     pub tor: u16,
 }
 
-pub const ETC_TOR_RC: &'static str = "/etc/tor/torrc";
-pub const HIDDEN_SERVICE_DIR_ROOT: &'static str = "/var/lib/tor";
+#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum HiddenServiceMode {
+    Anonymous,
+    Fast,
+}
 
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]

@@ -2216,9 +2216,9 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "1.2.2"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29f060a7d147e33490ec10da418795238fd7545bba241504d6b31a409f2e6210"
+checksum = "0f0242b8e50dd9accdd56170e94ca1ebd223b098eb9c83539a6e367d0f36ae68"
 
 [[package]]
 name = "simple-logging"
@@ -2490,7 +2490,7 @@ dependencies = [
 [[package]]
 name = "tokio-tar"
 version = "0.4.0"
-source = "git+https://github.com/dr-bonez/tokio-tar.git#2c4c3521d1c2c757c7d91f57c688373d38bd8980"
+source = "git+https://github.com/dr-bonez/tokio-tar.git#d6b56211ef0ad53a2bd807adc3053a6e48fe23ad"
 dependencies = [
  "filetime",
  "futures-core",

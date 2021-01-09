@@ -1,6 +1,6 @@
 [package]
 name = "appmgr"
-version = "0.2.7"
+version = "0.3.0"
 authors = ["Dr. BoneZ <drbonez@start9labs.com>"]
 edition = "2018"
 description = "Manage applications installed on the Start9 Embassy"

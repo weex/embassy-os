@@ -47,7 +47,7 @@ checksum = "ee67c11feeac938fae061b232e38e0b6d94f97a9df10e6271319325ac4c56a86"
 
 [[package]]
 name = "appmgr"
-version = "0.2.7"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "argonautica",

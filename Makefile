@@ -14,7 +14,7 @@ UI_SRC := $(shell find ui/src) \
 all: embassy.img
 
 embassy.img: buster.img product_key appmgr/target/armv7-unknown-linux-gnueabihf/release/appmgr ui/www agent/dist/agent agent/config/agent.service lifeline/target/armv7-unknown-linux-gnueabihf/release/lifeline lifeline/lifeline.service setup.sh setup.service docker-daemon.json
-	sudo ./make_image.sh
+#	sudo ./make_image.sh # we're going to run this manually on the RPi
 
 buster.img:
 	wget -O buster.zip https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2020-08-24/2020-08-20-raspios-buster-armhf-lite.zip
@@ -24,7 +24,7 @@ buster.img:
 
 product_key:
 	echo "X\c" > product_key
-	cat /dev/random | base32 | head -c11 | tr '[:upper:]' '[:lower:]' >> product_key
+	head -c11 /dev/random | base32 | head -c11 | tr '[:upper:]' '[:lower:]' >> product_key
 
 appmgr/target/armv7-unknown-linux-gnueabihf/release/appmgr: $(APPMGR_SRC)
 	docker run --rm -it -v ~/.cargo/registry:/root/.cargo/registry -v "$(shell pwd)":/home/rust/src start9/rust-arm-cross:latest sh -c "(cd appmgr && cargo build --release --features=production)"
